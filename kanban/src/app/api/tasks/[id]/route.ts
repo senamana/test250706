@@ -1,22 +1,25 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+}
 
 // PATCH /api/tasks/[id] - タスク更新（ステータス変更など）
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const body = await request.json();
 
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from("tasks")
     .update(body)
-    .eq("id", params.id)
+    .eq("id", id)
     .select()
     .single();
 
@@ -29,9 +32,10 @@ export async function PATCH(
 // DELETE /api/tasks/[id] - タスク削除
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { error } = await supabase.from("tasks").delete().eq("id", params.id);
+  const { id } = await params;
+  const { error } = await getSupabase().from("tasks").delete().eq("id", id);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

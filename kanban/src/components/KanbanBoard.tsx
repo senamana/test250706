@@ -14,7 +14,8 @@ import {
   closestCorners,
 } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
-import { supabase, Task, TaskStatus } from "@/lib/supabase";
+import Link from "next/link";
+import { getSupabase, Task, TaskStatus } from "@/lib/supabase";
 import { KanbanColumn } from "./KanbanColumn";
 import { TaskCard } from "./TaskCard";
 import { AddTaskModal } from "./AddTaskModal";
@@ -38,7 +39,8 @@ export function KanbanBoard() {
   );
 
   const fetchTasks = useCallback(async () => {
-    const { data, error } = await supabase
+    const sb = getSupabase();
+    const { data, error } = await sb
       .from("tasks")
       .select("*")
       .order("position", { ascending: true })
@@ -55,14 +57,15 @@ export function KanbanBoard() {
   useEffect(() => {
     fetchTasks();
 
+    const sb = getSupabase();
     // リアルタイム更新
-    const channel = supabase
+    const channel = sb
       .channel("tasks-changes")
       .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, fetchTasks)
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      sb.removeChannel(channel);
     };
   }, [fetchTasks]);
 
@@ -135,7 +138,6 @@ export function KanbanBoard() {
     }));
 
     setTasks((prev) => {
-      const otherTasks = prev.filter((t) => t.status !== newStatus || t.id === activeId);
       const merged = prev
         .map((t) => {
           const update = updates.find((u) => u.id === t.id);
@@ -147,15 +149,16 @@ export function KanbanBoard() {
       return merged as Task[];
     });
 
+    const sb = getSupabase();
     // Supabase に保存
     for (const u of updates) {
-      await supabase
+      await sb
         .from("tasks")
         .update({ status: u.status, position: u.position })
         .eq("id", u.id);
     }
     if (!updates.find((u) => u.id === activeId)) {
-      await supabase
+      await sb
         .from("tasks")
         .update({ status: newStatus })
         .eq("id", activeId);
@@ -163,7 +166,7 @@ export function KanbanBoard() {
   };
 
   const handleAddTask = async (title: string, description: string) => {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from("tasks")
       .insert({ title, description, status: "todo", position: 0 })
       .select()
@@ -177,7 +180,7 @@ export function KanbanBoard() {
   };
 
   const handleDeleteTask = async (id: string) => {
-    await supabase.from("tasks").delete().eq("id", id);
+    await getSupabase().from("tasks").delete().eq("id", id);
     setTasks((prev) => prev.filter((t) => t.id !== id));
   };
 
@@ -198,12 +201,20 @@ export function KanbanBoard() {
             <h1 className="text-base font-bold text-gray-900">AI秘書 カンバン</h1>
             <p className="text-xs text-gray-400">{tasks.length} タスク</p>
           </div>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="bg-indigo-500 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-indigo-600 transition-colors"
-          >
-            + 追加
-          </button>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/memos"
+              className="text-sm text-indigo-500 hover:text-indigo-700 font-medium px-3 py-2"
+            >
+              メモ
+            </Link>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="bg-indigo-500 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-indigo-600 transition-colors"
+            >
+              + 追加
+            </button>
+          </div>
         </div>
       </header>
 

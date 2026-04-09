@@ -1,17 +1,19 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+}
 
 // GET /api/tasks - タスク一覧取得
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const status = searchParams.get("status");
 
-  let query = supabase
+  let query = getSupabase()
     .from("tasks")
     .select("*")
     .order("position", { ascending: true })
@@ -38,7 +40,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "title is required" }, { status: 400 });
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from("tasks")
     .insert({ title, description, status, memo_id, position: 0 })
     .select()

@@ -1,17 +1,19 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+}
 
 // GET /api/memos?year_month=2026-04 - メモ一覧取得
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const yearMonth = searchParams.get("year_month");
 
-  let query = supabase
+  let query = getSupabase()
     .from("memos")
     .select("*")
     .order("created_at", { ascending: false });
@@ -39,7 +41,7 @@ export async function POST(request: NextRequest) {
 
   const ym = year_month || new Date().toISOString().slice(0, 7);
 
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from("memos")
     .insert({ title, content, year_month: ym, tags })
     .select()

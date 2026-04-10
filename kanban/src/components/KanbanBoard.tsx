@@ -47,10 +47,10 @@ export function KanbanBoard() {
       .order("created_at", { ascending: true });
 
     if (error) {
-      setError("タスクの読み込みに失敗しました");
-      return;
+      setError("タスクの読み込みに失敗しました: " + error.message);
+    } else {
+      setTasks(data as Task[]);
     }
-    setTasks(data as Task[]);
     setLoading(false);
   }, []);
 
